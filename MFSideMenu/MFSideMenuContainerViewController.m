@@ -27,7 +27,11 @@ typedef enum {
 @property (nonatomic, assign) BOOL viewHasAppeared;
 @end
 
-@implementation MFSideMenuContainerViewController
+@implementation MFSideMenuContainerViewController {
+    UIPanGestureRecognizer *_centerPanGestureRecognizer;
+    UITapGestureRecognizer *_centerTapGestureRecognizer;
+    UIPanGestureRecognizer *_menuPanGestureRecognizer;
+}
 
 @synthesize leftMenuViewController = _leftSideMenuViewController;
 @synthesize centerViewController = _centerViewController;
@@ -76,7 +80,7 @@ typedef enum {
 
 - (void)setDefaultSettings {
     if(self.menuContainerView) return;
-    
+
     self.menuContainerView = [[UIView alloc] init];
     self.menuState = MFSideMenuStateClosed;
     self.menuWidth = 270.0f;
@@ -89,16 +93,16 @@ typedef enum {
 
 - (void)setupMenuContainerView {
     if(self.menuContainerView.superview) return;
-    
+
     self.menuContainerView.frame = self.view.bounds;
     self.menuContainerView.autoresizingMask = UIViewAutoresizingFlexibleHeight|UIViewAutoresizingFlexibleWidth;
-    
+
     [self.view insertSubview:menuContainerView atIndex:0];
-    
+
     if(self.leftMenuViewController && !self.leftMenuViewController.view.superview) {
         [self.menuContainerView addSubview:self.leftMenuViewController.view];
     }
-    
+
     if(self.rightMenuViewController && !self.rightMenuViewController.view.superview) {
         [self.menuContainerView addSubview:self.rightMenuViewController.view];
     }
@@ -114,14 +118,14 @@ typedef enum {
 
 - (void)viewDidAppear:(BOOL)animated {
     [super viewDidAppear:animated];
-    
+
     if(!self.viewHasAppeared) {
         [self setupMenuContainerView];
         [self setLeftSideMenuFrameToClosedPosition];
         [self setRightSideMenuFrameToClosedPosition];
         [self addGestureRecognizers];
         [self.shadow draw];
-        
+
         self.viewHasAppeared = YES;
     }
 }
@@ -162,13 +166,13 @@ typedef enum {
 
 -(void)willAnimateRotationToInterfaceOrientation:(UIInterfaceOrientation)toInterfaceOrientation duration:(NSTimeInterval)duration {
     [super willAnimateRotationToInterfaceOrientation:toInterfaceOrientation duration:duration];
-    
+
     [self.shadow shadowedViewWillRotate];
 }
 
 - (void)didRotateFromInterfaceOrientation:(UIInterfaceOrientation)fromInterfaceOrientation {
     [super didRotateFromInterfaceOrientation:fromInterfaceOrientation];
-    
+
     [self.shadow shadowedViewDidRotate];
 }
 
@@ -178,16 +182,17 @@ typedef enum {
 
 - (void)setLeftMenuViewController:(UIViewController *)leftSideMenuViewController {
     [self removeChildViewControllerFromContainer:_leftSideMenuViewController];
-    
+
     _leftSideMenuViewController = leftSideMenuViewController;
     if(!_leftSideMenuViewController) return;
-    
+
     [self addChildViewController:_leftSideMenuViewController];
     if(self.menuContainerView.superview) {
         [self.menuContainerView insertSubview:[_leftSideMenuViewController view] atIndex:0];
     }
+    [((UIViewController *)_leftSideMenuViewController) view].frame = self.view.bounds;
     [_leftSideMenuViewController didMoveToParentViewController:self];
-    
+
     if(self.viewHasAppeared) [self setLeftSideMenuFrameToClosedPosition];
 }
 
@@ -195,17 +200,18 @@ typedef enum {
     [self removeCenterGestureRecognizers];
     [self removeChildViewControllerFromContainer:_centerViewController];
     self.shadow = nil;
-    
-    CGPoint origin = ((UIViewController *)_centerViewController).view.frame.origin;
+
+    //CGPoint origin = ((UIViewController *)_centerViewController).view.frame.origin;
     _centerViewController = centerViewController;
     if(!_centerViewController) return;
-    
+
     [self addChildViewController:_centerViewController];
     [self.view addSubview:[_centerViewController view]];
-    [((UIViewController *)_centerViewController) view].frame = (CGRect){.origin = origin, .size=centerViewController.view.frame.size};
-    
+//    [((UIViewController *)_centerViewController) view].frame = (CGRect){.origin = origin, .size=centerViewController.view.frame.size};
+    [((UIViewController *)_centerViewController) view].frame = self.view.bounds;
+
     [_centerViewController didMoveToParentViewController:self];
-    
+
     self.shadow = [MFSideMenuShadow shadowWithView:[_centerViewController view]];
     [self.shadow draw];
     [self addCenterGestureRecognizers];
@@ -213,16 +219,16 @@ typedef enum {
 
 - (void)setRightMenuViewController:(UIViewController *)rightSideMenuViewController {
     [self removeChildViewControllerFromContainer:_rightSideMenuViewController];
-    
+
     _rightSideMenuViewController = rightSideMenuViewController;
     if(!_rightSideMenuViewController) return;
-    
+
     [self addChildViewController:_rightSideMenuViewController];
     if(self.menuContainerView.superview) {
         [self.menuContainerView insertSubview:[_rightSideMenuViewController view] atIndex:0];
     }
     [_rightSideMenuViewController didMoveToParentViewController:self];
-    
+
     if(self.viewHasAppeared) [self setRightSideMenuFrameToClosedPosition];
 }
 
@@ -237,17 +243,20 @@ typedef enum {
 #pragma mark -
 #pragma mark - UIGestureRecognizer Helpers
 
-- (UIPanGestureRecognizer *)panGestureRecognizer {
-    UIPanGestureRecognizer *recognizer = [[UIPanGestureRecognizer alloc]
-                                          initWithTarget:self action:@selector(handlePan:)];
-	[recognizer setMaximumNumberOfTouches:1];
-    [recognizer setDelegate:self];
-    return recognizer;
+- (UIPanGestureRecognizer *)menuPanGestureRecognizer {
+    if (!_menuPanGestureRecognizer) {
+        _menuPanGestureRecognizer = [[UIPanGestureRecognizer alloc]
+                initWithTarget:self action:@selector(handlePan:)];
+        [_menuPanGestureRecognizer setMaximumNumberOfTouches:1];
+        [_menuPanGestureRecognizer setDelegate:self];
+    }
+
+    return _menuPanGestureRecognizer;
 }
 
 - (void)addGestureRecognizers {
     [self addCenterGestureRecognizers];
-    [menuContainerView addGestureRecognizer:[self panGestureRecognizer]];
+    [menuContainerView addGestureRecognizer:[self menuPanGestureRecognizer]];
 }
 
 - (void)removeCenterGestureRecognizers
@@ -255,7 +264,7 @@ typedef enum {
     if (self.centerViewController)
     {
         [[self.centerViewController view] removeGestureRecognizer:[self centerTapGestureRecognizer]];
-        [[self.centerViewController view] removeGestureRecognizer:[self panGestureRecognizer]];
+        [[self.centerViewController view] removeGestureRecognizer:[self centerPanGestureRecognizer]];
     }
 }
 - (void)addCenterGestureRecognizers
@@ -263,17 +272,31 @@ typedef enum {
     if (self.centerViewController)
     {
         [[self.centerViewController view] addGestureRecognizer:[self centerTapGestureRecognizer]];
-        [[self.centerViewController view] addGestureRecognizer:[self panGestureRecognizer]];
+        [[self.centerViewController view] addGestureRecognizer:[self centerPanGestureRecognizer]];
     }
 }
 
 - (UITapGestureRecognizer *)centerTapGestureRecognizer
 {
-    UITapGestureRecognizer *tapRecognizer = [[UITapGestureRecognizer alloc]
-                                             initWithTarget:self
-                                             action:@selector(centerViewControllerTapped:)];
-    [tapRecognizer setDelegate:self];
-    return tapRecognizer;
+    if (!_centerTapGestureRecognizer) {
+        _centerTapGestureRecognizer = [[UITapGestureRecognizer alloc]
+                initWithTarget:self
+                        action:@selector(centerViewControllerTapped:)];
+        [_centerTapGestureRecognizer setDelegate:self];
+    }
+    
+    return _centerTapGestureRecognizer;
+}
+
+- (UIPanGestureRecognizer *)centerPanGestureRecognizer {
+    if (!_centerPanGestureRecognizer) {
+        _centerPanGestureRecognizer = [[UIPanGestureRecognizer alloc]
+                initWithTarget:self action:@selector(handlePan:)];
+        [_centerPanGestureRecognizer setMaximumNumberOfTouches:1];
+        [_centerPanGestureRecognizer setDelegate:self];
+    }
+
+    return _centerPanGestureRecognizer;
 }
 
 
@@ -319,14 +342,16 @@ typedef enum {
 - (void)setMenuState:(MFSideMenuState)menuState completion:(void (^)(void))completion {
     void (^innerCompletion)() = ^ {
         _menuState = menuState;
-        
-        [self setUserInteractionStateForCenterViewController];
+
         MFSideMenuStateEvent eventType = (_menuState == MFSideMenuStateClosed) ? MFSideMenuStateEventMenuDidClose : MFSideMenuStateEventMenuDidOpen;
         [self sendStateEventNotification:eventType];
         
         if(completion) completion();
     };
-    
+
+
+    [self setUserInteractionStateForCenterViewControllerForState:menuState];
+
     switch (menuState) {
         case MFSideMenuStateClosed: {
             [self sendStateEventNotification:MFSideMenuStateEventMenuWillClose];
@@ -514,11 +539,16 @@ typedef enum {
 }
 
 - (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer {
+    if ([gestureRecognizer isKindOfClass:[UIPanGestureRecognizer class]]) {
+        UIPanGestureRecognizer *panRecognizer = (UIPanGestureRecognizer *) gestureRecognizer;
+        CGPoint velocity = [panRecognizer velocityInView:gestureRecognizer.view];
+        bool isHorizontalPanning = fabsf(velocity.x) > fabsf(velocity.y);
+        return isHorizontalPanning;
+    }
     return YES;
 }
 
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer
-shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
 	return NO;
 }
 
@@ -674,12 +704,12 @@ shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherG
     }
 }
 
-- (void)setUserInteractionStateForCenterViewController {
+- (void)setUserInteractionStateForCenterViewControllerForState:(MFSideMenuState)state {
     // disable user interaction on the current stack of view controllers if the menu is visible
     if([self.centerViewController respondsToSelector:@selector(viewControllers)]) {
         NSArray *viewControllers = [self.centerViewController viewControllers];
         for(UIViewController* viewController in viewControllers) {
-            viewController.view.userInteractionEnabled = (self.menuState == MFSideMenuStateClosed);
+            viewController.view.userInteractionEnabled = (state == MFSideMenuStateClosed);
         }
     }
 }
