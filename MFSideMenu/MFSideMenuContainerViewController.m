@@ -549,9 +549,19 @@ typedef enum {
 }
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
-	return NO;
+    return NO;
 }
 
+- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRequireFailureOfGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer {
+    if ([self.centerViewController isKindOfClass:[UINavigationController class]]) {
+        UINavigationController *controller = self.centerViewController;
+        if (controller.interactivePopGestureRecognizer == otherGestureRecognizer) {
+            return YES;
+        }
+    }
+
+    return NO;
+}
 
 #pragma mark -
 #pragma mark - UIGestureRecognizer Callbacks
