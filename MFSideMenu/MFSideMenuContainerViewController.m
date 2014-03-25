@@ -8,6 +8,7 @@
 
 #import "MFSideMenuContainerViewController.h"
 #import <QuartzCore/QuartzCore.h>
+#import <UIKit/UIKit.h>
 
 NSString * const MFSideMenuStateNotificationEvent = @"MFSideMenuStateNotificationEvent";
 
@@ -227,6 +228,7 @@ typedef enum {
     if(self.menuContainerView.superview) {
         [self.menuContainerView insertSubview:[_rightSideMenuViewController view] atIndex:0];
     }
+    [((UIViewController *)_rightSideMenuViewController) view].frame = self.view.bounds;
     [_rightSideMenuViewController didMoveToParentViewController:self];
 
     if(self.viewHasAppeared) [self setRightSideMenuFrameToClosedPosition];
