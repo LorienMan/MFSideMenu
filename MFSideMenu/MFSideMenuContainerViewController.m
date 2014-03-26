@@ -32,6 +32,7 @@ typedef enum {
     UIPanGestureRecognizer *_centerPanGestureRecognizer;
     UITapGestureRecognizer *_centerTapGestureRecognizer;
     UIPanGestureRecognizer *_menuPanGestureRecognizer;
+    UIView *_tapOverlayView;
 }
 
 @synthesize leftMenuViewController = _leftSideMenuViewController;
@@ -211,6 +212,12 @@ typedef enum {
 //    [((UIViewController *)_centerViewController) view].frame = (CGRect){.origin = origin, .size=centerViewController.view.frame.size};
     [((UIViewController *)_centerViewController) view].frame = self.view.bounds;
 
+    [_tapOverlayView removeFromSuperview];
+    _tapOverlayView = [[UIView alloc] initWithFrame:[((UIViewController *)_centerViewController) view].bounds];
+    _tapOverlayView.backgroundColor = [UIColor clearColor];
+    [[((UIViewController *)_centerViewController) view] addSubview:_tapOverlayView];
+    [self setUserInteractionStateForCenterViewControllerForState:_menuState];
+
     [_centerViewController didMoveToParentViewController:self];
 
     self.shadow = [MFSideMenuShadow shadowWithView:[_centerViewController view]];
@@ -265,7 +272,7 @@ typedef enum {
 {
     if (self.centerViewController)
     {
-        [[self.centerViewController view] removeGestureRecognizer:[self centerTapGestureRecognizer]];
+        [_tapOverlayView removeGestureRecognizer:[self centerTapGestureRecognizer]];
         [[self.centerViewController view] removeGestureRecognizer:[self centerPanGestureRecognizer]];
     }
 }
@@ -273,7 +280,7 @@ typedef enum {
 {
     if (self.centerViewController)
     {
-        [[self.centerViewController view] addGestureRecognizer:[self centerTapGestureRecognizer]];
+        [_tapOverlayView addGestureRecognizer:[self centerTapGestureRecognizer]];
         [[self.centerViewController view] addGestureRecognizer:[self centerPanGestureRecognizer]];
     }
 }
@@ -724,6 +731,8 @@ typedef enum {
             viewController.view.userInteractionEnabled = (state == MFSideMenuStateClosed);
         }
     }
+
+    _tapOverlayView.userInteractionEnabled = state != MFSideMenuStateClosed;
 }
 
 #pragma mark -
