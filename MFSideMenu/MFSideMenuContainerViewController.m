@@ -13,6 +13,7 @@
 #define SHADOW_ALPHA 0.7
 
 NSString * const MFSideMenuStateNotificationEvent = @"MFSideMenuStateNotificationEvent";
+NSString * const MFSideMenuPanStartedNotificationEvent = @"MFSideMenuPanStartedNotificationEvent";
 
 typedef enum {
     MFSideMenuPanDirectionNone,
@@ -588,6 +589,10 @@ typedef enum {
         // remember where the pan started
         panGestureOrigin = view.frame.origin;
         self.panDirection = MFSideMenuPanDirectionNone;
+
+        [[NSNotificationCenter defaultCenter] postNotificationName:MFSideMenuPanStartedNotificationEvent
+                                                            object:self
+                                                          userInfo:nil];
 	}
     
     if(self.panDirection == MFSideMenuPanDirectionNone) {
