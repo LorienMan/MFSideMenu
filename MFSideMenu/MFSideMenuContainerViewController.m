@@ -10,6 +10,8 @@
 #import <QuartzCore/QuartzCore.h>
 #import <UIKit/UIKit.h>
 
+#define SHADOW_ALPHA 0.7
+
 NSString * const MFSideMenuStateNotificationEvent = @"MFSideMenuStateNotificationEvent";
 
 typedef enum {
@@ -214,11 +216,13 @@ typedef enum {
 
     [_tapOverlayView removeFromSuperview];
     _tapOverlayView = [[UIView alloc] initWithFrame:[((UIViewController *)_centerViewController) view].bounds];
-    _tapOverlayView.backgroundColor = [UIColor clearColor];
+    _tapOverlayView.backgroundColor = [UIColor blackColor];
     [[((UIViewController *)_centerViewController) view] addSubview:_tapOverlayView];
     [self setUserInteractionStateForCenterViewControllerForState:_menuState];
 
     [_centerViewController didMoveToParentViewController:self];
+
+    [self setCenterViewControllerOffset:[((UIViewController *)_centerViewController) view].frame.origin.x];
 
     self.shadow = [MFSideMenuShadow shadowWithView:[_centerViewController view]];
     [self.shadow draw];
@@ -770,6 +774,15 @@ typedef enum {
 }
 
 - (void) setCenterViewControllerOffset:(CGFloat)xOffset {
+    CGFloat part = 0;
+    if (xOffset > 0) {
+        part = fabsf(xOffset) / self.leftMenuWidth;
+    } else {
+        part = fabsf(xOffset) / self.rightMenuWidth;
+    }
+    
+    _tapOverlayView.alpha = part * SHADOW_ALPHA;
+
     CGRect frame = [self.centerViewController view].frame;
     frame.origin.x = xOffset;
     [self.centerViewController view].frame = frame;
